@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Post from "../models/Post.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
 
@@ -58,3 +59,44 @@ export const getCurrentUser = async (req, res) => {
         user: req.user
     });
 };
+
+export const createPost = async (req, res) => {
+    const { title, content, excerpt, coverImage, status, tags } = req.body;
+    if (!title || !content) {
+        return res.status(400).json({ message: "Please provide all required fields" });
+    }
+    try {
+        let slug = title
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, "-")
+            .replace(/[^\w-]/g, "");
+
+        const existingPost = await Post.findOne({ slug });
+
+        if (existingPost) {
+            const count = await Post.countDocuments({
+                slug: new RegExp(`^${slug}(-\\d+)?$`)
+            });
+
+            slug = `${slug}-${count + 1}`;
+        }
+        const author = req.user._id;
+        const newPost = new Post({
+            title,
+            slug,
+            content,
+            excerpt,
+            coverImage,
+            status,
+            author,
+            tags
+        });
+        await newPost.save();
+        return res.status(201).json({ message: "Post created successfully", post: newPost });
+    }
+    catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+}
