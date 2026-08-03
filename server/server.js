@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import connectDB from "./config/db.js";
 import authRouter from "./routes/authRoutes.js";
+import postRoutes from "./routes/postRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -14,6 +15,7 @@ app.get("/", (req, res) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRouter);
+app.use("/api/posts", postRoutes);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
