@@ -50,3 +50,77 @@ export const getPostBySlug = async (req, res) => {
         });
     }
 }
+
+//Function to update post by id
+export const updatePostById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        //check if the post exists
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        //check if the user is the author of the post
+        if (post.author.toString() !== req.user.id) {
+            return res.status(403).json({ message: "You are not authorized to update this post" });
+        }
+        const {
+            title,
+            content,
+            excerpt,
+            coverImage,
+            status,
+            tags
+        } = req.body;
+        const updateData = {};
+
+        if (title !== undefined) updateData.title = title;
+        if (content !== undefined) updateData.content = content;
+        if (excerpt !== undefined) updateData.excerpt = excerpt;
+        if (coverImage !== undefined) updateData.coverImage = coverImage;
+        if (status !== undefined) updateData.status = status;
+        if (tags !== undefined) updateData.tags = tags;
+
+        Object.assign(post, updateData);
+
+        await post.save();
+
+        return res.status(200).json({
+            success: true,
+            post
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+}
+
+
+//function to delete post by id
+export const deletePostById = async (req, res) => {
+    const { id } = req.params;
+    try {
+        //find postby id
+        const post = await Post.findById(id);
+        if (!post) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+        //check if the user is the author of the post
+        if (post.author.toString() !== req.user.id) {
+            return res.status(403).json({ message: "You are not authorized to delete this post" });
+        }
+
+        //remove the post
+        await post.deleteOne();
+        return res.status(200).json({
+            success: true,
+            message: "Post deleted successfully"
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+}
