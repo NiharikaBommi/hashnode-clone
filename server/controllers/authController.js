@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import Post from "../models/Post.js";
+import Tag from "../models/Tag.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
 
@@ -81,6 +82,31 @@ export const createPost = async (req, res) => {
 
             slug = `${slug}-${count + 1}`;
         }
+        // finding unique tags and creating them if they don't exist
+        const uniqueTags = [...new Set((tags || []).map(tag =>
+            tag.toLowerCase().trim()
+        ))];
+        // creating tags if they don't exist and getting their ids
+        const tagIds = await Promise.all(
+            uniqueTags.map(async (tagName) => {
+                let tag = await Tag.findOne({ name: tagName });
+                //if the tag doesn't exist, create it and save it to the database
+                if (!tag) {
+                    const tagSlug = tagName
+                        .replace(/\s+/g, "-")
+                        .replace(/[^\w-]/g, "");
+
+                    tag = new Tag({
+                        name: tagName,
+                        slug: tagSlug
+                    });
+
+                    await tag.save();
+                }
+
+                return tag._id;
+            })
+        );
         const author = req.user._id;
         const newPost = new Post({
             title,
@@ -90,7 +116,7 @@ export const createPost = async (req, res) => {
             coverImage,
             status,
             author,
-            tags
+            tags: tagIds
         });
         await newPost.save();
         return res.status(201).json({ message: "Post created successfully", post: newPost });
