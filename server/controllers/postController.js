@@ -124,3 +124,27 @@ export const deletePostById = async (req, res) => {
         });
     }
 }
+
+//function to get all posts of the logged in user
+export const getMyPosts = async (req, res) => {
+    try {
+        //fetch the user id from the request object
+        const userId = req.user.id;
+
+        //fetch all posts of the user and populate author field in descending order of createdAt
+        const posts = await Post.find({ author: userId })
+            .populate("tags", "name slug")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: posts.length,
+            posts
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        });
+    }
+}
