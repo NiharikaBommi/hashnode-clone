@@ -2,13 +2,13 @@ import User from '../models/User.js';
 import Post from '../models/Post.js';
 
 //Get the public user by ID
-export const getUserById = async (req, res) => {
+export const getUserById = async (req, res, next) => {
     const { id } = req.params;
     try {
         //find the user by ID 
         const user = await User.findById(id).select("name bio avatarUrl");
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
         //User found, now get all the posts by this user that are published, populate the author and tags fields in descending order of createdAt
@@ -18,17 +18,20 @@ export const getUserById = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            user,
-            posts
+            message: "User profile fetched successfully",
+            data: {
+                user,
+                posts
+            }
         });
 
     } catch (error) {
-        return res.status(500).json({ message: error.message });
+        return next(error);
     }
 }
 
 //Update the current logged in user's profile
-export const updateUserProfile = async (req, res) => {
+export const updateUserProfile = async (req, res, next) => {
     const { name, bio, avatarUrl } = req.body;
     //Get the current logged in user from the request object
     const userId = req.user.id;
@@ -40,15 +43,18 @@ export const updateUserProfile = async (req, res) => {
         if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
         //Update the user profile with the new data and return the updated user
         const user = await User.findByIdAndUpdate(userId, updateData,
-            { new: true, runValidators: true })
+            { new: true, runValidators: true }).select("-password");
         if (!user) {
-            return res.status(404).json({ message: "User not found" });
+            return res.status(404).json({ success: false, message: "User not found" });
         }
         return res.status(200).json({
             success: true,
-            user
+            message: "Profile updated successfully",
+            data: {
+                user
+            }
         });
     } catch (error) {
-        return res.status(500).json({ message: error.message });
+        return next(error);
     }
 }

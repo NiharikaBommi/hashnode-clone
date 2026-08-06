@@ -1,6 +1,7 @@
 import Post from "../models/Post.js";
+import Tag from "../models/Tag.js";
 
-export const getPosts = async (req, res) => {
+export const getPosts = async (req, res, next) => {
     try {
 
         //find all post with status published and populate author and tags fields in descending order of createdAt
@@ -22,48 +23,50 @@ export const getPosts = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            count: posts.length,
-            posts
+            message: "Posts fetched successfully",
+            data: {
+                count: posts.length,
+                posts
+            }
         });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+        return next(error);
     }
 }
 
-export const getPostBySlug = async (req, res) => {
+export const getPostBySlug = async (req, res, next) => {
     const { slug } = req.params;
     try {
         const post = await Post.findOne({ slug, status: "published" })
-            .populate("author", "name email");
+            .populate("author", "name email").populate("tags", "name slug");
         if (!post) {
-            return res.status(404).json({ message: "Post not found" });
+            return res.status(404).json({ success: false, message: "Post not found" });
         }
         return res.status(200).json({
             success: true,
-            post
+            message: "Post fetched successfully",
+            data: {
+                post
+            }
         });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+        return next(error);
     }
 }
 
 //Function to update post by id
-export const updatePostById = async (req, res) => {
+export const updatePostById = async (req, res, next) => {
     const { id } = req.params;
     try {
         //check if the post exists
         const post = await Post.findById(id);
         if (!post) {
-            return res.status(404).json({ message: "Post not found" });
+            return res.status(404).json({ success: false, message: "Post not found" });
         }
 
         //check if the user is the author of the post
         if (post.author.toString() !== req.user.id) {
-            return res.status(403).json({ message: "You are not authorized to update this post" });
+            return res.status(403).json({ success: false, message: "You are not authorized to update this post" });
         }
         const {
             title,
@@ -88,28 +91,29 @@ export const updatePostById = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            post
+            message: "Post updated successfully",
+            data: {
+                post
+            }
         });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+        return next(error);
     }
 }
 
 
 //function to delete post by id
-export const deletePostById = async (req, res) => {
+export const deletePostById = async (req, res, next) => {
     const { id } = req.params;
     try {
         //find postby id
         const post = await Post.findById(id);
         if (!post) {
-            return res.status(404).json({ message: "Post not found" });
+            return res.status(404).json({ success: false, message: "Post not found" });
         }
         //check if the user is the author of the post
         if (post.author.toString() !== req.user.id) {
-            return res.status(403).json({ message: "You are not authorized to delete this post" });
+            return res.status(403).json({ success: false, message: "You are not authorized to delete this post" });
         }
 
         //remove the post
@@ -119,14 +123,12 @@ export const deletePostById = async (req, res) => {
             message: "Post deleted successfully"
         });
     } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+        return next(error);
     }
 }
 
 //function to get all posts of the logged in user
-export const getMyPosts = async (req, res) => {
+export const getMyPosts = async (req, res, next) => {
     try {
         //fetch the user id from the request object
         const userId = req.user.id;
@@ -138,13 +140,14 @@ export const getMyPosts = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            count: posts.length,
-            posts
+            message: "Posts fetched successfully",
+            data: {
+                count: posts.length,
+                posts
+            }
         });
 
     } catch (error) {
-        return res.status(500).json({
-            message: error.message
-        });
+        return next(error);
     }
 }

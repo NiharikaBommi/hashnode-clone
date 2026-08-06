@@ -6,6 +6,7 @@ import authRouter from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import tagRoutes from "./routes/tagRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import errorMiddleware from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 const app = express();
@@ -20,6 +21,7 @@ app.use('/api/auth', authRouter);
 app.use("/api/posts", postRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/users", userRoutes);
+app.use(errorMiddleware);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

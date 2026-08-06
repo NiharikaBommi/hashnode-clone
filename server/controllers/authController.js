@@ -4,67 +4,80 @@ import Tag from "../models/Tag.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
 
-export const registerUser = async (req, res) => {
+export const registerUser = async (req, res, next) => {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
-        return res.status(400).json({ message: "Please provide all required fields" });
+        return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
     try {
         const existingUser = await User.findOne({ email });
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists" });
+            return res.status(400).json({ success: false, message: "User already exists" });
         }
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({
+            name,
+            email,
+            password: hashedPassword
+        });
+        await newUser.save();
+        return res.status(201).json({
+            success: true,
+            message: "User registered successfully"
+        });
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        return next(error);
     }
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({
-        name,
-        email,
-        password: hashedPassword
-    });
-    await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
+
 }
 
-export const loginUser = async (req, res) => {
+export const loginUser = async (req, res, next) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        return res.status(400).json({ message: "Please provide all required fields" });
+        return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
     let user;
     try {
         user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: "Invalid credentials" });
+            return res.status(400).json({ success: false, message: "Invalid credentials" });
+        }
+        if (await bcrypt.compare(password, user.password)) {
+            const token = generateToken(user._id);
+            return res.status(200).json({
+                success: true,
+                message: "Login successful",
+                data: {
+                    token,
+                    user: {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email
+                    }
+                }
+            });
+        } else {
+            return res.status(400).json({ success: false, message: "Invalid credentials" });
         }
     } catch (error) {
-        return res.status(500).json({ message: "Internal server error" });
+        return next(error);
     }
-    if (await bcrypt.compare(password, user.password)) {
-        const token = generateToken(user._id);
-        res.status(200).json({
-            message: "Login successful", token, user: {
-                id: user._id,
-                name: user.name,
-                email: user.email
-            }
-        });
-    } else {
-        return res.status(400).json({ message: "Invalid credentials" });
-    }
+
 }
-export const getCurrentUser = async (req, res) => {
+export const getCurrentUser = (req, res) => {
     return res.status(200).json({
         success: true,
-        user: req.user
+        message: "Current user fetched successfully",
+        data: {
+            user: req.user
+        }
     });
 };
 
-export const createPost = async (req, res) => {
+export const createPost = async (req, res, next) => {
     const { title, content, excerpt, coverImage, status, tags } = req.body;
     if (!title || !content) {
-        return res.status(400).json({ message: "Please provide all required fields" });
+        return res.status(400).json({ success: false, message: "Please provide all required fields" });
     }
     try {
         let slug = title
@@ -119,10 +132,15 @@ export const createPost = async (req, res) => {
             tags: tagIds
         });
         await newPost.save();
-        return res.status(201).json({ message: "Post created successfully", post: newPost });
+        return res.status(201).json({
+            success: true,
+            message: "Post created successfully",
+            data: {
+                post: newPost
+            }
+        });
     }
     catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Internal server error" });
+        return next(error);
     }
 }
